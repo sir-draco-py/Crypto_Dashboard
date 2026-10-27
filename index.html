@@ -45,10 +45,10 @@ table{width:100%;border-collapse:collapse}
 th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
 th:first-child,td:first-child{text-align:left}
 th{color:var(--mut);font-weight:600;font-size:13px}
-.top{background:var(--ink);color:#fff;position:sticky;top:0;z-index:5}
+.hdr{background:var(--ink);color:#fff;position:sticky;top:0;z-index:20}
 .in{max-width:1180px;margin:0 auto;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
 .brand{display:flex;align-items:center;gap:10px}.brand b{display:block;font-size:18px;letter-spacing:-.01em;line-height:1.15}.brand small{color:#9fb0c0}
-.top .pill{background:#1c2f43;border-color:#2c4660;color:#fff}
+.hdr .pill{background:#1c2f43;border-color:#2c4660;color:#fff}
 .mut{color:var(--mut);font-size:13px}
 #prog{position:fixed;top:0;left:0;height:3px;width:0;background:#5b8cff;z-index:9;opacity:0}
 #prog.on{opacity:1;animation:ld 1.4s ease-in-out infinite}
@@ -66,7 +66,7 @@ main.busy .tiles,main.busy .panel,main.busy .facts{opacity:.45}
 .ft .col{flex:1 1 220px}.ft b{color:#fff}.ft p{margin:6px 0 0;font-size:13px}
 </style></head><body>
 <div id="prog"></div><div id="toast" role="status"></div>
-<header class="top"><div class="in">
+<header class="hdr"><div class="in">
 <div class="brand"><svg width="36" height="36" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#1f4fd8"/><path d="M6 22l7-8 5 4 8-10" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg><div><b>Insight Engine</b><small>Dashboard data kripto</small></div></div>
 <div id="health" class="pill"><span class="dot"></span><span id="htext">Memuat data…</span></div>
 </div></header>
@@ -76,7 +76,7 @@ main.busy .tiles,main.busy .panel,main.busy .facts{opacity:.45}
 <div class="facts" id="facts"></div>
 <div class="bar">
 <div class="seg" id="days" aria-label="Rentang waktu"><button data-d="1">1 hari</button><button data-d="7">7 hari</button><button data-d="30">30 hari</button><button data-d="all">Semua</button></div><span id="upd" class="mut"></span>
-<span class="sp"></span><button id="dl">Unduh CSV</button>
+<span class="sp"></span><button id="rf">Segarkan</button><button id="dl">Unduh CSV</button>
 </div>
 <div class="tiles" id="tiles"></div>
 <section class="panel">
@@ -94,11 +94,11 @@ main.busy .tiles,main.busy .panel,main.busy .facts{opacity:.45}
 <footer class="ft"><div class="in">
 <div class="col"><div class="brand"><svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#1f4fd8"/><path d="M6 22l7-8 5 4 8-10" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg><b>Insight Engine</b></div><p>Proyek kuliah kelompok: pengumpulan data harga kripto otomatis untuk tahap data mining.</p></div>
 <div class="col"><b>Alur data</b><p>CoinGecko API, Google Apps Script, Google Sheets, lalu dashboard ini.</p></div>
-<div class="col"><b>Catatan</b><p>Dashboard memuat ulang data tiap 60 detik. Harga adalah agregat CoinGecko, bukan data bursa, dan bukan saran investasi.</p></div>
+<div class="col"><b>Catatan</b><p>Dashboard memeriksa data baru tiap 3 menit, diam-diam di latar belakang. Harga adalah agregat CoinGecko, bukan data bursa, dan bukan saran investasi.</p></div>
 </div></footer>
 <script>
 // ====== PENGATURAN: tempel URL Web App Apps Script di sini ======
-const CONFIG={DATA_URL:"https://script.google.com/macros/s/AKfycbwafEcIk7CbxAisTnQBv46vhlobhoP7vLRR2mhEnjLrne47SCXtTkNMy0Qp2KD_p_HV/exec",REFRESH_MS:60000};
+const CONFIG={DATA_URL:"https://script.google.com/macros/s/AKfycbwafEcIk7CbxAisTnQBv46vhlobhoP7vLRR2mhEnjLrne47SCXtTkNMy0Qp2KD_p_HV/exec",REFRESH_MS:180000};
 // =================================================================
 const COINS=[["bitcoin","Bitcoin","BTC","#ea580c",84000],["ethereum","Ethereum","ETH","#7c3aed",2700],["solana","Solana","SOL","#0891b2",122],["ripple","XRP","XRP","#334155",1.5],["dogecoin","Dogecoin","DOGE","#a16207",.097],["polygon-ecosystem-token","Polygon","POL","#db2777",.12],["tether","Tether","USDT","#16a34a",1],["chainlink","Chainlink","LINK","#1d4ed8",14]];
 let days=7,sel="bitcoin",mode="one",rows=[],meta={},chart,lastT=0,next=0,stamp=null,tt;
@@ -114,8 +114,8 @@ const err=m=>{const e=$("#err");e.hidden=!m;e.textContent=m};
 function demo(){const o=[],now=Date.now(),n=(days==="all"?60:days)*48;
  COINS.forEach(c=>{let p=c[4];for(let i=n;i>=0;i--){p*=1+(c[0]=="tether"?1e-4:.004)*(Math.random()-.5);o.push([new Date(now-i*18e5).toISOString(),c[0],p,p*1e7,p*1e5,(Math.random()-.5)*4])}});
  return{total:o.length,first:o[0][0],rows:o}}
-async function load(){
- $("main").classList.add("busy");$("#prog").className="on";$("#upd").textContent="Memuat data…";
+async function load(silent){
+ if(!silent){$("main").classList.add("busy");$("#prog").className="on";$("#upd").textContent="Memuat data…"}
  try{
   let d;
   if(CONFIG.DATA_URL){const r=await fetch(CONFIG.DATA_URL+"?days="+days);if(!r.ok)throw Error("HTTP "+r.status);d=await r.json()}
@@ -172,5 +172,8 @@ $("#dl").onclick=()=>{const csv="timestamp,coin_id,price_usd,market_cap,volume_2
 $("#coins").innerHTML=COINS.map(c=>`<button data-id="${c[0]}"><i style="--c:${c[3]}"></i>${c[2]}</button>`).join("");
 $("#coins").onclick=e=>{const b=e.target.closest("button");if(b&&rows.length){sel=b.dataset.id;mode="one";sync();render()}};
 setInterval(()=>{if(!stamp||$("main").classList.contains("busy"))return;$("#upd").textContent=CONFIG.DATA_URL?"Diperbarui "+stamp.toLocaleTimeString("id-ID")+", cek lagi dalam "+Math.max(0,Math.round((next-Date.now())/1e3))+" dtk":"Mode demo"},1e3);
-sync();load();if(CONFIG.DATA_URL)setInterval(load,CONFIG.REFRESH_MS);
+$("#rf").onclick=()=>load();
+if(CONFIG.DATA_URL){setInterval(()=>{if(!document.hidden)load(true)},CONFIG.REFRESH_MS);
+ document.addEventListener("visibilitychange",()=>{if(!document.hidden&&Date.now()>next)load(true)})}
+sync();load();
 </script></body></html>
