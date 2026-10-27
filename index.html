@@ -1,7 +1,8 @@
 <!doctype html>
 <html lang="id"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Dashboard Harga Kripto</title>
+<title>Insight Engine | Dashboard Harga Kripto</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%231f4fd8'/%3E%3Cpath d='M6 22l7-8 5 4 8-10' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
@@ -9,7 +10,7 @@
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 Manrope,system-ui,sans-serif;font-variant-numeric:tabular-nums}
 main{max-width:1180px;margin:0 auto;padding:24px 16px 48px}
-header{display:flex;flex-wrap:wrap;gap:12px 24px;justify-content:space-between;align-items:flex-end;margin-bottom:16px}
+.hd{margin-bottom:16px}
 h1{font-size:clamp(24px,4vw,34px);margin:0;font-weight:800;letter-spacing:-.02em}
 h2{font-size:17px;margin:0}
 .sub{color:var(--mut);margin:2px 0 0}
@@ -44,36 +45,64 @@ table{width:100%;border-collapse:collapse}
 th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
 th:first-child,td:first-child{text-align:left}
 th{color:var(--mut);font-weight:600;font-size:13px}
-footer{color:var(--mut);font-size:13px}
-</style></head><body><main>
-<header>
-<div><h1>Pasar Kripto, 8 Koin</h1><p class="sub">Data otomatis dari CoinGecko, disimpan di Google Sheets</p></div>
+.top{background:var(--ink);color:#fff;position:sticky;top:0;z-index:5}
+.in{max-width:1180px;margin:0 auto;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px}.brand b{display:block;font-size:18px;letter-spacing:-.01em;line-height:1.15}.brand small{color:#9fb0c0}
+.top .pill{background:#1c2f43;border-color:#2c4660;color:#fff}
+.mut{color:var(--mut);font-size:13px}
+#prog{position:fixed;top:0;left:0;height:3px;width:0;background:#5b8cff;z-index:9;opacity:0}
+#prog.on{opacity:1;animation:ld 1.4s ease-in-out infinite}
+@keyframes ld{0%{width:0;left:0}60%{width:70%;left:0}100%{width:0;left:100%}}
+@media(prefers-reduced-motion:reduce){#prog.on{animation:none;width:100%}}
+main.busy .tiles,main.busy .panel,main.busy .facts{opacity:.45}
+.tiles,.panel,.facts{transition:opacity .2s}
+#toast{position:fixed;bottom:20px;left:50%;transform:translate(-50%,20px);background:var(--ink);color:#fff;padding:8px 16px;border-radius:99px;opacity:0;transition:.25s;z-index:9;pointer-events:none}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+#coins{flex-wrap:wrap;margin-bottom:12px}
+#coins i{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:6px;background:var(--c)}
+.hm{text-align:center;font-size:13px}
+.ft{background:var(--ink);color:#c5d0db;margin-top:32px}
+.ft .in{align-items:flex-start;padding:28px 16px}
+.ft .col{flex:1 1 220px}.ft b{color:#fff}.ft p{margin:6px 0 0;font-size:13px}
+</style></head><body>
+<div id="prog"></div><div id="toast" role="status"></div>
+<header class="top"><div class="in">
+<div class="brand"><svg width="36" height="36" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#1f4fd8"/><path d="M6 22l7-8 5 4 8-10" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg><div><b>Insight Engine</b><small>Dashboard data kripto</small></div></div>
 <div id="health" class="pill"><span class="dot"></span><span id="htext">Memuat data…</span></div>
-</header>
+</div></header>
+<main>
+<div class="hd"><h1>Pasar Kripto, 8 Koin</h1><p class="sub">Data otomatis dari CoinGecko, disimpan di Google Sheets</p></div>
 <div id="err" role="alert" hidden></div>
 <div class="facts" id="facts"></div>
 <div class="bar">
-<div class="seg" id="days" aria-label="Rentang waktu"><button data-d="1">1 hari</button><button data-d="7">7 hari</button><button data-d="30">30 hari</button></div>
+<div class="seg" id="days" aria-label="Rentang waktu"><button data-d="1">1 hari</button><button data-d="7">7 hari</button><button data-d="30">30 hari</button><button data-d="all">Semua</button></div><span id="upd" class="mut"></span>
 <span class="sp"></span><button id="dl">Unduh CSV</button>
 </div>
 <div class="tiles" id="tiles"></div>
 <section class="panel">
 <div class="head"><h2 id="ctitle"></h2>
 <div class="seg" id="mode" aria-label="Mode grafik"><button data-m="one">Satu koin</button><button data-m="all">Bandingkan semua</button></div></div>
+<div class="seg" id="coins" aria-label="Pilih koin"></div>
 <div class="cv"><canvas id="chart"></canvas></div>
 </section>
 <section class="panel">
-<div class="head"><h2>Ringkasan statistik pada rentang terpilih</h2></div>
+<div class="head"><h2>Ringkasan statistik pada rentang terpilih</h2><small id="note" class="mut"></small></div>
 <div class="wrap"><table id="stats"><thead><tr><th>Koin</th><th>Baris</th><th>Harga min</th><th>Rata-rata</th><th>Harga maks</th><th>Terakhir</th><th>Volume 24j</th></tr></thead><tbody></tbody></table></div>
 </section>
-<footer>Halaman memuat ulang data otomatis tiap 60 detik. Data baru masuk sesuai interval trigger Apps Script.</footer>
+<section class="panel"><div class="head"><h2>Korelasi return antar koin</h2><small class="mut">1 = bergerak searah, -1 = berlawanan</small></div><div class="wrap"><table id="corr"></table></div></section>
 </main>
+<footer class="ft"><div class="in">
+<div class="col"><div class="brand"><svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#1f4fd8"/><path d="M6 22l7-8 5 4 8-10" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg><b>Insight Engine</b></div><p>Proyek kuliah kelompok: pengumpulan data harga kripto otomatis untuk tahap data mining.</p></div>
+<div class="col"><b>Alur data</b><p>CoinGecko API, Google Apps Script, Google Sheets, lalu dashboard ini.</p></div>
+<div class="col"><b>Catatan</b><p>Dashboard memuat ulang data tiap 60 detik. Harga adalah agregat CoinGecko, bukan data bursa, dan bukan saran investasi.</p></div>
+</div></footer>
 <script>
 // ====== PENGATURAN: tempel URL Web App Apps Script di sini ======
 const CONFIG={DATA_URL:"https://script.google.com/macros/s/AKfycbwafEcIk7CbxAisTnQBv46vhlobhoP7vLRR2mhEnjLrne47SCXtTkNMy0Qp2KD_p_HV/exec",REFRESH_MS:60000};
 // =================================================================
 const COINS=[["bitcoin","Bitcoin","BTC","#ea580c",84000],["ethereum","Ethereum","ETH","#7c3aed",2700],["solana","Solana","SOL","#0891b2",122],["ripple","XRP","XRP","#334155",1.5],["dogecoin","Dogecoin","DOGE","#a16207",.097],["polygon-ecosystem-token","Polygon","POL","#db2777",.12],["tether","Tether","USDT","#16a34a",1],["chainlink","Chainlink","LINK","#1d4ed8",14]];
-let days=7,sel="bitcoin",mode="one",rows=[],meta={},chart;
+let days=7,sel="bitcoin",mode="one",rows=[],meta={},chart,lastT=0,next=0,stamp=null,tt;
+const toast=m=>{const t=$("#toast");t.textContent=m;t.className="show";clearTimeout(tt);tt=setTimeout(()=>t.className="",3500)};
 const $=s=>document.querySelector(s);
 const usd=n=>"$"+n.toLocaleString("en-US",{maximumFractionDigits:n>=1?2:6});
 const cmp=n=>"$"+n.toLocaleString("en-US",{notation:"compact",maximumFractionDigits:2});
@@ -82,20 +111,25 @@ const dt=ms=>new Date(ms).toLocaleString("id-ID",{day:"numeric",month:"short",ho
 const ago=ms=>ms<6e4?"baru saja":ms<36e5?Math.round(ms/6e4)+" mnt lalu":ms<864e5?(ms/36e5).toFixed(1)+" jam lalu":Math.round(ms/864e5)+" hari lalu";
 const by=id=>rows.filter(r=>r.id===id);
 const err=m=>{const e=$("#err");e.hidden=!m;e.textContent=m};
-function demo(){const o=[],now=Date.now(),n=days*48;
+function demo(){const o=[],now=Date.now(),n=(days==="all"?60:days)*48;
  COINS.forEach(c=>{let p=c[4];for(let i=n;i>=0;i--){p*=1+(c[0]=="tether"?1e-4:.004)*(Math.random()-.5);o.push([new Date(now-i*18e5).toISOString(),c[0],p,p*1e7,p*1e5,(Math.random()-.5)*4])}});
  return{total:o.length,first:o[0][0],rows:o}}
 async function load(){
+ $("main").classList.add("busy");$("#prog").className="on";$("#upd").textContent="Memuat data…";
  try{
   let d;
   if(CONFIG.DATA_URL){const r=await fetch(CONFIG.DATA_URL+"?days="+days);if(!r.ok)throw Error("HTTP "+r.status);d=await r.json()}
   else d=demo();
-  meta={total:d.total,first:d.first};
+  meta={total:d.total,first:d.first,step:d.step||1};
   rows=d.rows.map(r=>({t:Date.parse(r[0]),id:r[1],p:+r[2],mc:+r[3],v:+r[4],ch:r[5]===""||r[5]==null?null:+r[5]}))
    .filter(r=>COINS.some(c=>c[0]===r.id)&&r.p>0&&r.mc>0&&!isNaN(r.t)).sort((a,b)=>a.t-b.t);
   err(CONFIG.DATA_URL?"":"Mode demo dengan data acak. Isi CONFIG.DATA_URL di index.html dengan URL Web App Apps Script Anda.");
+  const nl=rows.length?rows[rows.length-1].t:0;
+  if(lastT&&nl>lastT)toast("Data baru masuk dari spreadsheet");
+  lastT=nl;stamp=new Date();next=Date.now()+CONFIG.REFRESH_MS;
   render();
  }catch(e){err("Gagal memuat data ("+e.message+"). Data terakhir yang berhasil dimuat tetap ditampilkan.")}
+ finally{$("main").classList.remove("busy");$("#prog").className=""}
 }
 function spark(r,col){const k=Math.ceil(r.length/60),s=r.filter((_,i)=>i%k==0),ps=s.map(x=>x.p),mn=Math.min(...ps),mx=Math.max(...ps),w=200,h=36;
  const pts=s.map((x,i)=>(i/(s.length-1||1)*w).toFixed(1)+","+(h-(x.p-mn)/((mx-mn)||1)*h).toFixed(1)).join(" ");
@@ -105,13 +139,20 @@ function render(){
  const ts=[...new Set(rows.map(r=>r.t))],last=ts[ts.length-1],tl=ts.slice(-21),g=tl.slice(1).map((t,i)=>t-tl[i]).sort((a,b)=>a-b),gap=g[g.length>>1]||3e5,age=Date.now()-last,ok=age<gap*2.5+6e4;
  $("#health").className="pill "+(ok?"ok":"late");
  $("#htext").textContent=(ok?"Data masuk normal":"Data terlambat")+", terakhir "+ago(age)+", jeda sekitar "+Math.round(gap/6e4)+" mnt";
- $("#facts").innerHTML=[["Total baris",(meta.total??rows.length).toLocaleString("id-ID")],["Siklus pada rentang",ts.length.toLocaleString("id-ID")],["Data pertama",dt(Date.parse(meta.first)||ts[0])],["Data terakhir",dt(last)]].map(([k,v])=>`<div><b>${v}</b><span>${k}</span></div>`).join("");
+ const lc=COINS.map(c=>{const r=by(c[0]);return r.length?[c[2],r[r.length-1].ch]:null}).filter(x=>x&&x[1]!=null).sort((a,b)=>b[1]-a[1]),fm=x=>x?x[0]+" "+pct(x[1]):"–";
+ $("#facts").innerHTML=[["Total baris",(meta.total??rows.length).toLocaleString("id-ID")],["Siklus pada rentang",ts.length.toLocaleString("id-ID")],["Data pertama",dt(Date.parse(meta.first)||ts[0])],["Data terakhir",dt(last)],["Naik terbanyak 24 jam",fm(lc[0])],["Turun terbanyak 24 jam",fm(lc[lc.length-1])]].map(([k,v])=>`<div><b>${v}</b><span>${k}</span></div>`).join("");
  $("#tiles").innerHTML=COINS.map(c=>{const r=by(c[0]);if(!r.length)return"";const l=r[r.length-1];
   return `<button class="tile" style="--c:${c[3]}" data-id="${c[0]}" aria-pressed="${c[0]===sel}"><div class="top"><b>${c[1]}</b><span>${c[2]}</span></div><div class="price">${usd(l.p)}</div><div class="${(l.ch??0)>=0?"up":"dn"}">${l.ch==null?"–":pct(l.ch)} <small>24 jam</small></div>${spark(r,c[3])}<div class="row"><span>Kap. ${cmp(l.mc)}</span><span>Vol. ${cmp(l.v)}</span></div></button>`}).join("");
  $("#stats tbody").innerHTML=COINS.map(c=>{const r=by(c[0]);if(!r.length)return"";const p=r.map(x=>x.p);
   return `<tr><td>${c[1]}</td><td>${r.length}</td><td>${usd(Math.min(...p))}</td><td>${usd(p.reduce((a,b)=>a+b)/p.length)}</td><td>${usd(Math.max(...p))}</td><td>${usd(p[p.length-1])}</td><td>${cmp(r[r.length-1].v)}</td></tr>`}).join("");
- draw();
+ $("#note").textContent=meta.step>1?"Data disampel tiap "+meta.step+" siklus agar cepat dimuat":"";
+ corr();draw();
 }
+function corr(){
+ const ts=[...new Set(rows.map(r=>r.t))],R=COINS.map(c=>{const m=new Map(by(c[0]).map(r=>[r.t,r.p]));let pv=null;return ts.map(t=>{const p=m.get(t);if(p==null)return null;const x=pv==null?null:p/pv-1;pv=p;return x})});
+ const pr=(a,b)=>{let n=0,sa=0,sb=0,aa=0,bb=0,ab=0;a.forEach((x,i)=>{const y=b[i];if(x==null||y==null)return;n++;sa+=x;sb+=y;aa+=x*x;bb+=y*y;ab+=x*y});const d=Math.sqrt((n*aa-sa*sa)*(n*bb-sb*sb));return n>2&&d?(n*ab-sa*sb)/d:null};
+ $("#corr").innerHTML="<tr><th></th>"+COINS.map(c=>"<th>"+c[2]+"</th>").join("")+"</tr>"+COINS.map((c,i)=>"<tr><th>"+c[2]+"</th>"+COINS.map((d,j)=>{const v=pr(R[i],R[j]);
+  return `<td class="hm" style="background:${v==null?"transparent":(v>=0?"rgba(31,79,216,":"rgba(192,57,43,")+Math.abs(v).toFixed(2)+")"};color:${v!=null&&Math.abs(v)>.5?"#fff":"inherit"}">${v==null?"–":v.toFixed(2)}</td>`}).join("")+"</tr>").join("")}
 function draw(){
  const one=mode==="one",list=one?COINS.filter(c=>c[0]===sel):COINS;
  $("#ctitle").textContent=one?COINS.find(c=>c[0]===sel)[1]+": harga dalam USD":"Perbandingan pergerakan, awal rentang = 100";
@@ -122,11 +163,14 @@ function draw(){
   scales:{x:{type:"linear",ticks:{maxTicksLimit:7,callback:v=>dt(v)}},y:{ticks:{callback:v=>one?usd(v):v.toFixed(1)}}},
   plugins:{legend:{display:!one},tooltip:{callbacks:{title:i=>dt(i[0].parsed.x),label:i=>i.dataset.label+": "+(one?usd(i.parsed.y):i.parsed.y.toFixed(2))}}}}});
 }
-function sync(){document.querySelectorAll("#days button").forEach(b=>b.setAttribute("aria-pressed",+b.dataset.d===days));document.querySelectorAll("#mode button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.m===mode))}
-$("#days").onclick=e=>{const b=e.target.closest("button");if(b){days=+b.dataset.d;sync();load()}};
+function sync(){document.querySelectorAll("#coins button").forEach(b=>b.setAttribute("aria-pressed",mode==="one"&&b.dataset.id===sel));document.querySelectorAll("#days button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.d==days));document.querySelectorAll("#mode button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.m===mode))}
+$("#days").onclick=e=>{const b=e.target.closest("button");if(b){days=b.dataset.d==="all"?"all":+b.dataset.d;sync();load()}};
 $("#mode").onclick=e=>{const b=e.target.closest("button");if(b){mode=b.dataset.m;sync();draw()}};
 $("#tiles").onclick=e=>{const b=e.target.closest(".tile");if(b){sel=b.dataset.id;mode="one";sync();render()}};
 $("#dl").onclick=()=>{const csv="timestamp,coin_id,price_usd,market_cap,volume_24h,change_24h_percent\n"+rows.map(r=>[new Date(r.t).toISOString().slice(0,19)+"Z",r.id,r.p,r.mc,r.v,r.ch??""].join(",")).join("\n");
  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download="crypto_price_data.csv";a.click()};
+$("#coins").innerHTML=COINS.map(c=>`<button data-id="${c[0]}"><i style="--c:${c[3]}"></i>${c[2]}</button>`).join("");
+$("#coins").onclick=e=>{const b=e.target.closest("button");if(b&&rows.length){sel=b.dataset.id;mode="one";sync();render()}};
+setInterval(()=>{if(!stamp||$("main").classList.contains("busy"))return;$("#upd").textContent=CONFIG.DATA_URL?"Diperbarui "+stamp.toLocaleTimeString("id-ID")+", cek lagi dalam "+Math.max(0,Math.round((next-Date.now())/1e3))+" dtk":"Mode demo"},1e3);
 sync();load();if(CONFIG.DATA_URL)setInterval(load,CONFIG.REFRESH_MS);
 </script></body></html>
